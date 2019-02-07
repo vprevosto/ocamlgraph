@@ -58,7 +58,12 @@ NAME=ocamlgraph
 ifeq (@LABLGNOMECANVAS@,yes)
 all: byte $(OCAMLBEST) viewer dgraph editor
 else
+ifeq (@LABLGTK_VERSION@,3)
+# we do not port the deprecated viewer to lablgtk3
+all: byte $(OCAMLBEST) dgraph editor
+else
 all: byte $(OCAMLBEST)
+endif
 endif
 
 # bytecode and native-code compilation

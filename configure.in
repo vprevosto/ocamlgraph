@@ -163,36 +163,56 @@ else
   SUFFIX=cma;
 fi
 
-# checking for lablgtk2 and lablgnomecanvas
-###########################################
+# checking for lablgtk{2,3} and lablgnomecanvas
+###############################################
 
-# lablgtk2 now uses ocamlfind while older version uses  `ocamlc -where `
-# its installation path is not the same
-if test "$OCAMLFIND" = "" ; then
-  LABLGTK_PATH=+lablgtk2
-  LABLGTKPATH_FOR_CONFIGURE=$OCAMLLIB/lablgtk2
-else
-  LABLGTK_PATH=`ocamlfind query lablgtk2 | tr -d '\\r\\n'`
-  if test "$LABLGTK_PATH" = ""  -o "$LABLGTK_PATH" -ef "$OCAMLLIB/lablgtk2" ; \
-  then
-     LABLGTK_PATH=+lablgtk2
-     LABLGTKPATH_FOR_CONFIGURE=$OCAMLLIB/lablgtk2
+# check whether lablgtk3 is installed,
+# unless --disable-lablgtk3 has been passed on the command line
+
+AC_ARG_ENABLE(lablgtk3,
+  AC_HELP_STRING([--disable-lablgtk3],
+    [in case lablgtk2 and lablgtk3 are available, the default is to compile
+     against lablgtk3. Use this option to force compiling against lablgtk2]),
+  [ENABLE_LABLGTK3=$enableval],[ENABLE_LABLGTK3=yes])
+
+if test "$ENABLE_LABLGTK3" = "yes"; then
+  LABLGTK_PATH=`ocamlfind query lablgtk3 | tr -d '\\r\\n'`;
+fi
+
+if test "$LABLGTK_PATH" = ""; then
+  LABLGTK_VERSION=2
+  # lablgtk2 now uses ocamlfind while older version uses  `ocamlc -where `
+  # its installation path is not the same
+  if test "$OCAMLFIND" = "" ; then
+    LABLGTK_PATH=+lablgtk2
+    LABLGTKPATH_FOR_CONFIGURE=$OCAMLLIB/lablgtk2
   else
-     LABLGTKPATH_FOR_CONFIGURE=$LABLGTK_PATH
-  fi
+    LABLGTK_PATH=`ocamlfind query lablgtk2 | tr -d '\\r\\n'`
+    if test "$LABLGTK_PATH" = ""  -o "$LABLGTK_PATH" -ef "$OCAMLLIB/lablgtk2"; \
+    then
+       LABLGTK_PATH=+lablgtk2
+       LABLGTKPATH_FOR_CONFIGURE=$OCAMLLIB/lablgtk2
+    else
+       LABLGTKPATH_FOR_CONFIGURE=$LABLGTK_PATH
+    fi
+  fi;
+else
+  LABLGTK_VERSION=3
+  LABLGTKPATH_FOR_CONFIGURE=$LABLGTK_PATH;
 fi
 
 AC_CHECK_FILE($LABLGTKPATH_FOR_CONFIGURE/lablgtk.$SUFFIX,
-  LABLGTK2=yes,
-  LABLGTK2=no)
+  LABLGTK=yes,
+  LABLGTK=no)
 
-if test "$LABLGTK2" = yes ; then
+if test "$LABLGTK" = yes ; then
   INCLUDEGTK2="-I $LABLGTK_PATH"
+  # NB: lablgnomecanvas is only meaningful for lablgtk2
   AC_CHECK_FILE($LABLGTKPATH_FOR_CONFIGURE/lablgnomecanvas.$SUFFIX,
     LABLGNOMECANVAS=yes,
     LABLGNOMECANVAS=no)
 else
-  LABLGTK2=no
+  LABLGTK=no
   LABLGNOMECANVAS=no
 fi
 
@@ -213,7 +233,7 @@ rm -f check_arch.ml
 LIBEXT=`ocamlc -config | grep ext_lib | sed -e 's/.*\(\..*\)/\1/' `
 OBJEXT=`ocamlc -config | grep ext_obj | sed -e 's/.*\(\..*\)/\1/' `
 
-if test "$LABLGNOMECANVAS" = no ; then
+if test "$LABLGTK_VERSION" = 2 -a "$LABLGNOMECANVAS" = no ; then
   AC_MSG_WARN([lablgnomecanvas not found: the graph editor and view_graph will not be compiled])
 fi
 
@@ -228,7 +248,8 @@ AC_SUBST(OCAMLBEST)
 AC_SUBST(OCAMLVERSION)
 AC_SUBST(OCAMLLIB)
 AC_SUBST(OCAMLWEB)
-AC_SUBST(LABLGTK2)
+AC_SUBST(LABLGTK)
+AC_SUBST(LABLGTK_VERSION)
 AC_SUBST(LABLGNOMECANVAS)
 AC_SUBST(OCAMLWIN32)
 AC_SUBST(EXE)
